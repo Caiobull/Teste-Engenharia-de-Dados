@@ -17,41 +17,101 @@ Implementar uma solução de dados que consuma as bases do **IBGE** de Populaç�
 
 ## ⚙️ Arquitetura da Solução (Azure)
 
-# Arquitetura Recomendada (Azure)
+# 1) Arquitetura Recomendada (Azure)
 
-## 1) Breve Diagrama Lógico (texto)
+## Breve Diagrama Lógico (Texto)
 
 ### Ingestão
-- **Azure Data Factory (ADF)** ou **Azure Logic Apps** → orquestra chamadas à API IBGE  
+- **Azure Data Factory (ADF)** ou **Azure Logic Apps** → orquestra chamadas à **API IBGE**  
 - **Alternativa:** script **PySpark** agendado/cron  
 
 ### Armazenamento Raw
 - **Azure Data Lake Storage Gen2**  
-  - Contêiner:  
+  - Contêineres:  
     - `raw/ibge/pop/`  
     - `raw/ibge/pib/`  
-  - Formato: **JSON/NDJSON**  
+  - Formato: **JSON / NDJSON**  
 
 ### Processamento / Transformação
 - **Azure Databricks (PySpark)** ou **Azure Synapse Spark pool**  
-- Jobs que transformam **raw → bronze → silver → gold**  
+- Jobs que transformam:  
+  **raw → bronze → silver → gold**  
 
 ### Curadoria / Serving (Delivery)
-- **Gold** em formato **Parquet** particionado  
-  - Exemplo de diretórios:  
+- **Gold** em **Parquet** particionado  
+  - Exemplos de diretórios:  
     - `gold/municipio_ano/`  
     - `gold/uf_ano/`  
     - `gold/brasil_ano/`  
-- **Opcional:** gravação em **Azure SQL** / **Synapse dedicated SQL pool** para consumo pelo Power BI  
+- **Opcional:** gravação em **Azure SQL** / **Synapse dedicated SQL pool** para consumo no **Power BI**  
 
 ### Visualização
-- **Power BI** conectando:  
+- **Power BI** conectado:  
   - Diretamente aos arquivos **Parquet** no ADLS (via **Databricks SQL endpoint**)  
   - Ou à tabela no **Azure SQL**  
 
 ### Observabilidade
 - Logs do **ADF** / **Databricks**  
-- Monitoramento via **Azure Monitor**
+- Monitoramento via **Azure Monitor**  
+
+---
+
+## Diagrama (Mermaid)
+
+```mermaid
+flowchart TD
+
+subgraph INGESTAO[Ingestão]
+  A[ADF / Logic Apps]:::azure -->|API Calls| B[API IBGE]
+  C[PySpark Script Cron]:::alt --> B
+end
+
+subgraph RAW[Armazenamento Raw]
+  D[Azure Data Lake Gen2 <br/> raw/ibge/pop/ , raw/ibge/pib/ <br/> JSON/NDJSON]:::storage
+end
+
+subgraph PROC[Processamento / Transformação]
+  E[Azure Databricks <br/> PySpark]:::compute
+  F[Azure Synapse <br/> Spark Pool]:::compute
+end
+
+subgraph SERVING[Curadoria / Serving]
+  G[Parquet Gold <br/> gold/municipio_ano/ , gold/uf_ano/ , gold/brasil_ano/]:::gold
+  H[Azure SQL / Synapse Dedicated SQL]:::sql
+end
+
+subgraph VIS[Visualização]
+  I[Power BI]:::pbi
+end
+
+subgraph OBS[Observabilidade]
+  J[Logs ADF / Databricks]:::log
+  K[Azure Monitor]:::monitor
+end
+
+A --> D
+C --> D
+D --> E
+D --> F
+E --> G
+F --> G
+G --> H
+G --> I
+H --> I
+E --> J
+F --> J
+J --> K
+
+classDef azure fill:#D6EAF8,stroke:#1B4F72,stroke-width:2px;
+classDef alt fill:#FADBD8,stroke:#7B241C,stroke-width:2px;
+classDef storage fill:#FDEDEC,stroke:#7D3C98,stroke-width:2px;
+classDef compute fill:#F9E79F,stroke:#7D6608,stroke-width:2px;
+classDef gold fill:#D5F5E3,stroke:#145A32,stroke-width:2px;
+classDef sql fill:#E8DAEF,stroke:#4A235A,stroke-width:2px;
+classDef pbi fill:#FCF3CF,stroke:#B7950B,stroke-width:2px;
+classDef log fill:#F2F3F4,stroke:#616A6B,stroke-width:2px;
+classDef monitor fill:#EBF5FB,stroke:#1B4F72,stroke-width:2px;
+
 
 # 2) Modelagem Proposta (Camadas)
 
