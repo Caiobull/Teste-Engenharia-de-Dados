@@ -17,10 +17,38 @@ Implementar uma solução de dados que consuma as bases do **IBGE** de Populaç�
 
 ## ⚙️ Arquitetura da Solução (Azure)
 
-```mermaid
-flowchart LR
-    A[IBGE API] -->|Ingestão PySpark| B[Azure Data Lake Storage Gen2]
-    B --> C[Camada Bronze (Raw - JSON)]
-    C --> D[Camada Silver (Curated - Parquet)]
-    D --> E[Camada Gold (Delivery - Modelagem)]
-    E --> F[Power BI Dashboard]
+# Arquitetura Recomendada (Azure)
+
+## 1) Breve Diagrama Lógico (texto)
+
+### Ingestão
+- **Azure Data Factory (ADF)** ou **Azure Logic Apps** → orquestra chamadas à API IBGE  
+- **Alternativa:** script **PySpark** agendado/cron  
+
+### Armazenamento Raw
+- **Azure Data Lake Storage Gen2**  
+  - Contêiner:  
+    - `raw/ibge/pop/`  
+    - `raw/ibge/pib/`  
+  - Formato: **JSON/NDJSON**  
+
+### Processamento / Transformação
+- **Azure Databricks (PySpark)** ou **Azure Synapse Spark pool**  
+- Jobs que transformam **raw → bronze → silver → gold**  
+
+### Curadoria / Serving (Delivery)
+- **Gold** em formato **Parquet** particionado  
+  - Exemplo de diretórios:  
+    - `gold/municipio_ano/`  
+    - `gold/uf_ano/`  
+    - `gold/brasil_ano/`  
+- **Opcional:** gravação em **Azure SQL** / **Synapse dedicated SQL pool** para consumo pelo Power BI  
+
+### Visualização
+- **Power BI** conectando:  
+  - Diretamente aos arquivos **Parquet** no ADLS (via **Databricks SQL endpoint**)  
+  - Ou à tabela no **Azure SQL**  
+
+### Observabilidade
+- Logs do **ADF** / **Databricks**  
+- Monitoramento via **Azure Monitor**  
